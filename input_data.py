@@ -104,36 +104,38 @@ class AudioProcessor(object):
   def download_extract(self, data_url, dest_directory):
     if not data_url:
       return
-
     if not os.path.exists(dest_directory):
       os.makedirs(dest_directory)
+    filename = data_url.split('/')[-1]
+    filepath = os.path.join(dest_directory, filename)
+    if not os.path.exists(filepath):
 
-      #get the filename
-      filename = data_url.split('/')[-1] #get the tail name from given directory
-      filepath = os.path.join(dest_directory, filename)
-
-      if not os.path.exists(dest_directory):
-        def _progress(count, block_size, total_size):
-          sys.stdout.write('downloading.. {} {:.3f}'.format(filename, float(count * block_szie) / float(total_size) * 100.0))
+      def _progress(count, block_size, total_size):
+        sys.stdout.write(
+            '\r>> Downloading %s %.1f%%' %
+            (filename, float(count * block_size) / float(total_size) * 100.0))
+        sys.stdout.flush()
 
       try:
         filepath, _ = urllib.request.urlretrieve(data_url, filepath, _progress)
       except:
-        tf.logging.error('failed to donwload the dataset')
-
+        tf.logging.error('Failed to download URL: %s to folder: %s', data_url,
+                         filepath)
+        tf.logging.error('Please make sure you have enough free space and'
+                         ' an internet connection')
+        raise
+      print()
       statinfo = os.stat(filepath)
-      tf.logging.info('dowloaded {:.3f}'.format(statinfo.st_size))
-
-    #extract the .tar file
+      tf.logging.info('Successfully downloaded %s (%d bytes)', filename,
+                      statinfo.st_size)
     tarfile.open(filepath, 'r:gz').extractall(dest_directory)
-
   def prepare_data_index(self, silence_percentage, unknown_percentage, 
                          wanted_words, validation_percentage, testing_percentage):
     #make picking and shuffling in random manner
     random.seed(random_seed)
     wanted_words_index = {}
-    for index, wanted_words in enumerate(wanted_words):
-      wanted_words_index = index + 2
+    for index, wanted_word in enumerate(wanted_words):
+      wanted_words_index[wanted_word] = index + 2
 
     self.data_index = {'validation': [], 'testing': [], 'training': []}
     unknown_index = {'validation': [], 'testing': [], 'training': []}
@@ -170,7 +172,7 @@ class AudioProcessor(object):
 
       #pick some unknows to add to each partition so it trained between known and unknown words
       random.shuffle(unknown_index[set_index])
-      unknown_size = int(math.ceil(set_size * unknown_precentage / 100))
+      unknown_size = int(math.ceil(set_size * unknown_percentage / 100))
       self.data_index[set_index].extend(unknown_index[set_index][ : unknown_size])
 
     #make sure the order is random
