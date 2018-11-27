@@ -56,7 +56,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms, window_si
   desired_samples = int(sample_rate * clip_duration_ms / 1000)
   window_size_samples = int(sample_rate * window_size_ms / 1000)
   window_stride_samples = int(sample_rate * window_stride_ms / 1000)
-  length _minus_window = (desired_samples - window_stride_samples)
+  length_minus_window = (desired_samples - window_stride_samples)
 
   if length_minus_window < 0:
     spectrogram_length = 0
@@ -195,3 +195,5 @@ def conv_model(fingerprint_input, model_settings, is_training):
     return final_fc, dropout_prob
   else:
     return final_fc
+
+  #---------------------------------------------
