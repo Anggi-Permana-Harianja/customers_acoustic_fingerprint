@@ -56,7 +56,7 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms, window_si
   desired_samples = int(sample_rate * clip_duration_ms / 1000)
   window_size_samples = int(sample_rate * window_size_ms / 1000)
   window_stride_samples = int(sample_rate * window_stride_ms / 1000)
-  length_minus_window = (desired_samples - window_stride_samples)
+  length_minus_window = (desired_samples - window_size_samples)
 
   if length_minus_window < 0:
     spectrogram_length = 0
@@ -100,7 +100,7 @@ def conv_model(fingerprint_input, model_settings, is_training):
   # dropout_prob only for training and not testing
   if is_training:
     dropout_prob = tf.placeholder(tf.float32, name = 'dropout_prob')
-  input_frequency = model_settings['fingerprint_width']
+  input_frequency_size = model_settings['fingerprint_width']
   input_time_size = model_settings['spectrogram_length']
 
   #--------------------------------------------
@@ -125,7 +125,7 @@ def conv_model(fingerprint_input, model_settings, is_training):
   first_weights = tf.get_variable(name = 'first_weights', 
                                   initializer = tf.truncated_normal_initializer(stddev = 0.01), 
                                   shape = [first_filter_height, first_filter_width, 1, 
-                                          filter_filter_count])
+                                          first_filter_count])
   first_bias = tf.get_variable(name = 'first_bias', 
                                initializer = tf.zeros_initializer, 
                                shape = [first_filter_count])
@@ -142,7 +142,7 @@ def conv_model(fingerprint_input, model_settings, is_training):
     first_dropout = first_relu
 
   #maxpooling
-  first_maxpool = tf.nn.maxpool(first_dropout, first_maxpool_ksize, first_maxpool_stride, first_maxpool_padding)
+  first_maxpool = tf.nn.max_pool(first_dropout, first_maxpool_ksize, first_maxpool_stride, first_maxpool_padding)
 
   # create conv model second layer
   second_filter_width = 4
@@ -192,8 +192,8 @@ def conv_model(fingerprint_input, model_settings, is_training):
 
   # if it is training or testing
   if is_training:
-    return final_fc, dropout_prob
+    return final_fcnn, dropout_prob
   else:
-    return final_fc
+    return final_fcnn
 
   #---------------------------------------------
