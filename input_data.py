@@ -198,7 +198,7 @@ class AudioProcessor(object):
       return self.background_data
 
     used_graph = tf.Graph()
-    with tf.session(graph = used_graph) as sess:
+    with tf.Session(graph = used_graph) as sess:
       wav_filename_placeholder = tf.placeholder(tf.string, [])
       wav_loader = io_ops.read_file(wav_filename_placeholder)
       wav_decoder = contrib_audio.decode_wav(wav_loader, desired_channels = 1)
@@ -228,7 +228,7 @@ class AudioProcessor(object):
       self.time_shift_offset_placeholder_ = tf.placeholder(tf.int32, [2], name = 'time_shift_offset')
 
       #pad with zeros
-      padded_foreground = tf.pad(scaled_foreground, self.time_shift_padding_placholder_, 
+      padded_foreground = tf.pad(scaled_foreground, self.time_shift_padding_placeholder_, 
                                  mode = 'CONSTANT')
       sliced_foreground = tf.slice(padded_foreground, self.time_shift_offset_placeholder_, 
                                    [desired_samples, -1])
@@ -293,7 +293,7 @@ class AudioProcessor(object):
       else:
         time_shift_amount = 0
 
-      if time_shitf_amount > 0:
+      if time_shift_amount > 0:
         time_shift_padding = [[time_shift_amount, 0], [0, 0]]
         time_shift_offset = [0, 0]
       else:
@@ -310,6 +310,9 @@ class AudioProcessor(object):
         background_samples = self.background_data[background_index]
 
         if len(background_samples) <= model_settings['desired_samples']:
+          raise ValuerError(model_settings['desired_samples'], len(background_samples))
+
+        if len(background_samples) <= model_settings['desired_samples']:
           raise ValueError('background samples should equal desired samples')
 
         background_offset = np.random.randint(0, len(background_samples) - model_settings['desired_samples'])
@@ -319,7 +322,7 @@ class AudioProcessor(object):
         if sample['label'] == silence_label:
           background_volume = np.random.uniform(0, 1)
         elif np.random.uniform(0, 1) < background_frequency:
-          background_volume = np.random_uniform(0, background_volume_range)
+          background_volume = np.random.uniform(0, background_volume_range)
         else:  
           background_volume = 0
       else:
@@ -337,9 +340,8 @@ class AudioProcessor(object):
 
       #-----------------------------------------------------
       # run the graph to produce the output audio
-      summary, data_tensor = sess.run([self.merged_summaries, self.output_], feed_dict = input_dict)
-      self.summary_writer.add_summary(summary)
-
+      summary, data_tensor = sess.run([self.merged_summaries_, self.output_], feed_dict = input_dict)
+      self.summary_writer_.add_summary(summary)
       data[i - offset, : ] = data_tensor.flatten()
       label_index = self.word_to_index[sample['label']]
       labels[i - offset] = label_index
