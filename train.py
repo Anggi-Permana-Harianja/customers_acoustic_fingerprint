@@ -21,6 +21,9 @@ FLAGS = None
 def main(_):
 	# logging
 	tf.logging.set_verbosity(tf.logging.INFO)
+	#start tensorflow session
+	sess = tf.InteractiveSession()
+
 	# prepare models
 	model_settings = models.prepare_model_settings(
 						len(input_data.prepare_words_list(FLAGS.wanted_words.split(','))),
@@ -37,7 +40,7 @@ def main(_):
 
 	label_count = model_settings['label_count']
 
-	time_shift_samples = int((FLAGS.time_shfit_ms * FLAGS.sample_rate) / 1000)
+	time_shift_samples = int((FLAGS.time_shift_ms * FLAGS.sample_rate) / 1000)
 
 	# training steps and learning rate hyperparameters
 	training_steps_list = list(map(int, FLAGS.how_many_training_steps.split(',')))
@@ -49,7 +52,7 @@ def main(_):
 	#-------------------------------------------
 	# input placeholders to get fingerprint input
 	input_placeholder = tf.placeholder(tf.float32, [None, fingerprint_size], name = 'fingerprint_input')
-	fingerprint_min, fingerprint_max = input_data.features_range(model_settings)
+	fingerprint_min, fingerprint_max = input_data.features_range()
 	fingerprint_input = tf.fake_quant_with_min_max_args(input_placeholder, 
 														fingerprint_min, 
 														fingerprint_max)
@@ -142,7 +145,7 @@ def main(_):
 	#---------------------------------------------
 
 	# save list of words
-	with gfile.GFile(os.path.join, 'mfcc_labels.txt') as f:
+	with gfile.GFile(os.path.join(FLAGS.train_dir, 'mfcc_labels.txt'), 'w') as f:
 		f.write('\n'.join(audio_processor.words_list))
 
 	#---------------------------------------------
@@ -152,13 +155,13 @@ def main(_):
 		training_steps_sum = 0
 		for i in range(len(training_steps_list)):
 			training_steps_sum += training_steps_list[i]
-			if training_steps <= training_steps_sum:
+			if training_step <= training_steps_sum:
 				learning_rate_value = learning_rates_list[i]
 				break
 
 		#pull audio for training
 		train_fingerprints, train_ground_truth = audio_processor.get_data(
-													FLAGS.bacth_size, 0, model_settings, 
+													FLAGS.batch_size, 0, model_settings, 
 													FLAGS.background_frequency, FLAGS.background_volume, 
 													time_shift_samples, 'training', sess)
 
@@ -211,7 +214,7 @@ def main(_):
 
 				#VALIDATION WRITER
 				validation_writer.add_summary(validation_summary, training_step)
-				batch_size = min(FLAGS.bacth_size, set_size - i)
+				batch_size = min(FLAGS.batch_size, set_size - i)
 				total_accuracy += (validation_accuracy * batch_size) / set_size
 
 				if total_conf_matrix is None:
@@ -221,8 +224,7 @@ def main(_):
 
 			#logging
 			tf.logging.info('confusion matrix: %s' % (total_conf_matrix))
-			tf.logging.info('step: %d\t validation accuracy = %f (N = %d)' % (training_step, total_accuracy, 
-																			  100, set_size))
+			tf.logging.info('step: %d\t validation accuracy = %f (N = %d)' % (training_step, total_accuracy * 100, set_size))
 
 		# SAVE THE MODEL PERIODICALLY
 		if(training_step % FLAGS.save_step_interval) == 0 or training_step == training_steps_max:
