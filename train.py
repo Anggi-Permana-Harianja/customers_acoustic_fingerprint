@@ -223,7 +223,8 @@ def main(_):
 					total_conf_matrix += conf_matrix
 
 			#logging
-			tf.logging.info('confusion matrix: %s' % (total_conf_matrix))
+			print('confusion matrix')
+			tf.logging.info('%s' % (total_conf_matrix))
 			tf.logging.info('step: %d\t validation accuracy = %f (N = %d)' % (training_step, total_accuracy * 100, set_size))
 
 		# SAVE THE MODEL PERIODICALLY
@@ -323,12 +324,12 @@ if __name__ == '__main__':
 						help = 'how many bins to use for the MFCC fingerprints band')
 	parser.add_argument('--how_many_training_steps', 
 						type = str, 
-						default = '15000, 3000', 
-						help = 'how many training loops/epochs')
+						default = '150, 300', 
+						help = 'how many training loops/epochs') #should be default = '15000, 30000'
 	parser.add_argument('--eval_step_interval', 
 						type = int, 
-						default = 400, 
-						help = 'how often validation results')
+						default = 40, 
+						help = 'how often validation results') #should be deafault = 400
 	parser.add_argument('--learning_rate', 
 						type = str, 
 						default = '0.001, 0.0001', 
